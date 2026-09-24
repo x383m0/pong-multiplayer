@@ -47,7 +47,7 @@ h3 {
   min-width: 280px;
 }
 
-#chooseRole {
+#chooseRole, #lobby {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -57,14 +57,6 @@ h3 {
 #joinBox {
   display: flex;
   gap: 8px;
-}
-
-#lobby {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
 }
 
 #lobbyList {
@@ -97,15 +89,8 @@ button {
   font-size: 0.95rem;
 }
 
-button:hover {
-  background: #7dd3fc;
-}
-
-button:disabled {
-  background: #475569;
-  color: #94a3b8;
-  cursor: not-allowed;
-}
+button:hover { background: #7dd3fc; }
+button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
 
 input {
   padding: 10px;
@@ -139,9 +124,7 @@ input {
   gap: 10px;
 }
 
-.panel.side {
-  gap: 12px;
-}
+.panel.side { gap: 12px; }
 
 canvas {
   background: #0f172a;
@@ -163,14 +146,8 @@ canvas {
   gap: 4px;
 }
 
-.opp-slot span {
-  font-size: 0.7rem;
-  color: #94a3b8;
-}
-
-.opp-slot.eliminated canvas {
-  opacity: 0.35;
-}
+.opp-slot span { font-size: 0.7rem; color: #94a3b8; }
+.opp-slot.eliminated canvas { opacity: 0.35; }
 
 .stats {
   display: flex;
@@ -189,9 +166,37 @@ canvas {
 
 .result.win { color: #4ade80; }
 .result.lose { color: #f87171; }
+.controls { margin: 0; font-size: 0.85rem; color: #94a3b8; }
 
-.controls {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
+/* New Visual Elements */
+.garbage-meter-container {
+  width: 24px;
+  height: 200px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.garbage-meter {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: #ef4444;
+  transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 0%;
+}
+
+@keyframes screen-shake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-5px, 3px) rotate(-1deg); }
+  40% { transform: translate(4px, -4px) rotate(1deg); }
+  60% { transform: translate(-3px, 2px) rotate(0deg); }
+  80% { transform: translate(2px, -1px) rotate(-0.5deg); }
+  100% { transform: translate(0, 0); }
+}
+
+.shake {
+  animation: screen-shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
 }
