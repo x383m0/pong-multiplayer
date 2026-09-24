@@ -26,6 +26,15 @@
   </div>
 
   <div id="gameArea" style="display:none;">
+    <div class="panel side">
+      <h3>Hold</h3>
+      <canvas id="holdPiece" width="96" height="96"></canvas>
+      <h3 style="margin-top:12px;">Garbage</h3>
+      <div class="garbage-meter-container">
+        <div id="garbageMeter" class="garbage-meter"></div>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>You</h2>
       <canvas id="myBoard" width="240" height="480"></canvas>
@@ -37,16 +46,15 @@
 
     <div class="panel side">
       <h3>Next</h3>
-      <canvas id="nextPiece" width="96" height="96"></canvas>
-      <h3>Opponents</h3>
+      <canvas id="nextPiece" width="96" height="288"></canvas>
+      <h3 style="margin-top:12px;">Opponents</h3>
       <div id="oppBoards"></div>
     </div>
   </div>
 
   <p id="resultMsg" class="result"></p>
-  <p class="controls">Controls: ← → move · ↑ rotate · ↓ soft drop · Space hard drop</p>
+  <p class="controls">Controls: ← → move · ↑ rotate · ↓ soft drop · Space hard drop · C hold</p>
 
-  <!-- PeerJS: handles WebRTC connection setup, no backend needed -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="game.js"></script>
 </body>
