@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pong Online</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Pong — Online 2 Player</h1>
+
+  <div id="menu">
+    <button id="hostBtn">Host Game</button>
+    <div id="joinBox">
+      <input id="hostIdInput" placeholder="Enter host's code" />
+      <button id="joinBtn">Join Game</button>
+    </div>
+    <p id="status"></p>
+  </div>
+
+  <canvas id="game" width="800" height="500"></canvas>
+  <p class="controls">Controls: Arrow Up / Arrow Down or W / S</p>
+  <p class="note">Host controls the left paddle, the person who joins controls the right paddle.</p>
+
+  <!-- PeerJS: handles WebRTC connection setup, no backend needed -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

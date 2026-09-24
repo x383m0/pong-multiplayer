@@ -1,0 +1,85 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 24px 16px 40px;
+  box-sizing: border-box;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+#menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  padding: 16px 24px;
+  border-radius: 10px;
+  min-width: 280px;
+}
+
+#joinBox {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  background: #38bdf8;
+  color: #0f172a;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button:hover {
+  background: #7dd3fc;
+}
+
+input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  width: 160px;
+}
+
+#status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #a5f3fc;
+  word-break: break-all;
+  text-align: center;
+}
+
+canvas {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+}
+
+.controls, .note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
