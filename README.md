@@ -1,62 +1,69 @@
-# Online Pong (2-player, peer-to-peer)
+# 1v1 Tetris (peer-to-peer, no backend)
 
-A simple Pong game for two people on separate computers, connected directly
-browser-to-browser over WebRTC (no backend server needed). One player hosts,
-shares a short code, the other joins with it.
+Two people, two separate boards, connected browser-to-browser over WebRTC.
+Clear multiple lines at once to send garbage lines to your opponent's board.
+First person to top out loses.
 
 ## Dependencies to install
 
-**None, locally.** There's no `npm install`, no Node.js server, nothing to
-run. The only "dependency" is the PeerJS library, loaded straight from a CDN
-in `index.html`:
+**None.** Same as before — no `npm install`, no server. The only external
+piece is the PeerJS library loaded from a CDN in `index.html`:
 
 ```html
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 ```
 
-That's it — `index.html`, `style.css`, and `game.js` are the whole project.
+`index.html`, `style.css`, and `game.js` are the whole project.
 
-Optional, for local testing in VS Code:
-- The **Live Server** extension, so you can right-click `index.html` →
-  "Open with Live Server" and test in a real browser tab (double-clicking
-  the file directly also works fine here since there's no build step).
+## How the networking works (and why it's different from the Pong version)
 
-## How it works
+Tetris doesn't have one shared object like Pong's ball — each player has
+their **own independent board**. So instead of one computer being the
+"authority" that computes everything, **each computer simulates its own
+board locally**, for zero-lag controls. The only things sent over the
+connection are:
 
-- PeerJS uses WebRTC to connect the two browsers directly to each other.
-  It relies on PeerJS's free public "cloud" signaling server just to help
-  the two browsers find each other and negotiate the connection — after
-  that, game data (paddle position, ball position, score) flows directly
-  between the two players, not through any server of yours.
-- The **host** runs the actual game physics (ball movement, collisions,
-  scoring) and streams the game state to the other player every frame.
-- The **joiner** just sends their paddle's up/down input to the host and
-  renders whatever state the host sends back.
+- A snapshot of your board (so your friend's screen can show a small preview
+  of what you're doing)
+- A "garbage" message when you clear 2+ lines at once, which adds junk rows
+  to your opponent's board
+- A "game over" message when you top out, so your opponent knows they won
 
-## Hosting on GitHub Pages
+## Uploading to your existing GitHub repo
 
-1. Push these three files (`index.html`, `style.css`, `game.js`) to a GitHub
-   repo.
-2. In the repo, go to **Settings → Pages**, set the source to your default
-   branch (e.g. `main`) and root folder, then save.
-3. GitHub will give you a URL like `https://yourusername.github.io/repo-name/`.
-4. Send that link to your friend. One of you clicks **Host Game**, copies the
-   code shown, sends it (Discord/text/whatever), and the other pastes it into
-   **Join Game**.
+Since git isn't installed on the school computer, use the same browser
+upload method as before:
+
+1. Go to your repo on github.com.
+2. Delete the old `index.html`, `style.css`, and `game.js` (click each file →
+   trash-can icon → commit the deletion), or just re-upload — GitHub will
+   ask if you want to replace files with the same name.
+3. Click **Add file → Upload files**, drag in the new `index.html`,
+   `style.css`, `game.js`, and this `README.md`.
+4. Commit the changes. GitHub Pages will automatically redeploy your live
+   URL with the new game — no need to touch the Pages settings again.
 
 ## Controls
 
-- Arrow Up / Arrow Down, or W / S — moves your paddle.
-- Host controls the left paddle, the joiner controls the right paddle.
+- **← / →** — move left/right
+- **↑** — rotate
+- **↓** — soft drop (hold for faster descent)
+- **Space** — hard drop (slam the piece down instantly)
+
+## Garbage rules
+
+| Lines cleared at once | Garbage sent to opponent |
+|---|---|
+| 1 | 0 |
+| 2 | 1 |
+| 3 | 2 |
+| 4 (Tetris) | 4 |
 
 ## Known limitations
 
-- **Strict firewalls/corporate NAT**: WebRTC peer-to-peer connections can
-  occasionally fail to establish on networks with strict NAT/firewall rules
-  (common on corporate or school Wi-Fi), since this setup has no TURN relay
-  server as a fallback. If a connection won't establish, try a different
-  network (e.g. home Wi-Fi or mobile hotspot).
-- There's no reconnect logic — if the connection drops, refresh the page and
-  reconnect.
-- This is intentionally simple (no lag compensation/interpolation), so on a
-  slow connection the joiner may see slightly choppy ball movement.
+- No restart button — refresh the page for a rematch.
+- No wall-kick system as sophisticated as official Tetris (SRS); rotation
+  uses simple left/right nudges if the default rotation doesn't fit.
+- Same WebRTC caveat as before: strict firewalls without a TURN relay can
+  occasionally block the connection, though same-network wired connections
+  (like a school LAN) tend to work fine.

@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pong Online</title>
+<title>1v1 Tetris Online</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Pong — Online 2 Player</h1>
+  <h1>1v1 Tetris — Online</h1>
 
   <div id="menu">
     <button id="hostBtn">Host Game</button>
@@ -18,9 +18,30 @@
     <p id="status"></p>
   </div>
 
-  <canvas id="game" width="800" height="500"></canvas>
-  <p class="controls">Controls: Arrow Up / Arrow Down or W / S</p>
-  <p class="note">Host controls the left paddle, the person who joins controls the right paddle.</p>
+  <div id="gameArea" style="display:none;">
+    <div class="panel">
+      <h2>You</h2>
+      <canvas id="myBoard" width="240" height="480"></canvas>
+      <div class="stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lines: <span id="lines">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel side">
+      <div>
+        <h3>Next</h3>
+        <canvas id="nextPiece" width="96" height="96"></canvas>
+      </div>
+      <div>
+        <h3>Opponent</h3>
+        <canvas id="oppBoard" width="120" height="240"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <p id="resultMsg" class="result"></p>
+  <p class="controls">Controls: ← → move · ↑ rotate · ↓ soft drop · Space hard drop</p>
 
   <!-- PeerJS: handles WebRTC connection setup, no backend needed -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
