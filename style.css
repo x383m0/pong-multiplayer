@@ -18,8 +18,9 @@ body {
 
 h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   letter-spacing: 0.02em;
+  text-align: center;
 }
 
 h2, h3 {
@@ -29,7 +30,7 @@ h2, h3 {
 }
 
 h3 {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #94a3b8;
@@ -46,9 +47,43 @@ h3 {
   min-width: 280px;
 }
 
+#chooseRole {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 #joinBox {
   display: flex;
   gap: 8px;
+}
+
+#lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+#lobbyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+#lobbyList li {
+  background: #0f172a;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
 }
 
 button {
@@ -64,6 +99,12 @@ button {
 
 button:hover {
   background: #7dd3fc;
+}
+
+button:disabled {
+  background: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 input {
@@ -99,13 +140,36 @@ input {
 }
 
 .panel.side {
-  gap: 20px;
+  gap: 12px;
 }
 
 canvas {
   background: #0f172a;
   border: 2px solid #334155;
   border-radius: 6px;
+}
+
+#oppBoards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 260px;
+}
+
+.opp-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.opp-slot span {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.opp-slot.eliminated canvas {
+  opacity: 0.35;
 }
 
 .stats {
@@ -120,6 +184,7 @@ canvas {
   font-weight: 700;
   min-height: 1.4em;
   margin: 0;
+  text-align: center;
 }
 
 .result.win { color: #4ade80; }

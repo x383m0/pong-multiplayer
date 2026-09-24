@@ -1,69 +1,73 @@
-# 1v1 Tetris (peer-to-peer, no backend)
+# Tetris Online — up to 4 players
 
-Two people, two separate boards, connected browser-to-browser over WebRTC.
-Clear multiple lines at once to send garbage lines to your opponent's board.
-First person to top out loses.
+One person hosts, up to three friends join with a code. Everyone plays their
+own board; clearing 2+ lines at once fires garbage at a random opponent.
+Last player standing wins.
 
 ## Dependencies to install
 
-**None.** Same as before — no `npm install`, no server. The only external
-piece is the PeerJS library loaded from a CDN in `index.html`:
+Still none. Same as before — `index.html`, `style.css`, `game.js`, loading
+PeerJS from a CDN:
 
 ```html
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 ```
 
-`index.html`, `style.css`, and `game.js` are the whole project.
+## What changed from the 2-player version
 
-## How the networking works (and why it's different from the Pong version)
+**Networking (hub topology):** with more than 2 players, having everyone
+connect directly to everyone else gets complicated fast. Instead, everyone
+connects only to the host, and the host relays messages between players —
+so if Player 2 attacks Player 3, that message travels Player 2 → Host →
+Player 3. This keeps the setup simple: joiners only ever need the host's
+code, never each other's.
 
-Tetris doesn't have one shared object like Pong's ball — each player has
-their **own independent board**. So instead of one computer being the
-"authority" that computes everything, **each computer simulates its own
-board locally**, for zero-lag controls. The only things sent over the
-connection are:
+**Two bugs fixed:**
 
-- A snapshot of your board (so your friend's screen can show a small preview
-  of what you're doing)
-- A "garbage" message when you clear 2+ lines at once, which adds junk rows
-  to your opponent's board
-- A "game over" message when you top out, so your opponent knows they won
+1. **Hard drop placing multiple pieces per press.** The browser's built-in
+   "is this key being held down" signal isn't fully reliable across
+   browsers, so a single space-bar press was occasionally being read as
+   several. Movement keys now track their own held/not-held state manually
+   instead of trusting the browser, so each press fires exactly once.
+2. **Inconsistent left/right movement (1, 2, or 5 steps).** This was almost
+   certainly a "stuck key" problem: if the browser tab loses focus for even
+   a moment while a key is held (switching windows, alt-tabbing to grab the
+   host's code, etc.), the browser can miss the "key released" event —
+   so the game kept thinking the key was still held down. Now, the instant
+   the window loses focus, all movement is force-reset, so a stray tab
+   switch can't leave a key "stuck." A lag spike is also now capped so it
+   can't be "caught up" in one big multi-step jump.
 
-## Uploading to your existing GitHub repo
+## Hosting on GitHub Pages
 
-Since git isn't installed on the school computer, use the same browser
-upload method as before:
+Same as before: replace `index.html`, `style.css`, and `game.js` in your
+existing repo (Add file → Upload files, drag these in, commit). GitHub Pages
+redeploys automatically — no need to touch the Pages settings again.
 
-1. Go to your repo on github.com.
-2. Delete the old `index.html`, `style.css`, and `game.js` (click each file →
-   trash-can icon → commit the deletion), or just re-upload — GitHub will
-   ask if you want to replace files with the same name.
-3. Click **Add file → Upload files**, drag in the new `index.html`,
-   `style.css`, `game.js`, and this `README.md`.
-4. Commit the changes. GitHub Pages will automatically redeploy your live
-   URL with the new game — no need to touch the Pages settings again.
+## How to play with up to 4 people
+
+1. One person clicks **Host Game** and shares the code shown.
+2. Up to three friends each click **Join Game** and paste in that code.
+3. The host sees a lobby list of who's connected and can click
+   **Start Game** any time there are at least 2 players total (you don't
+   need all 4 to start).
+4. Everyone plays their own board. Opponent boards appear as small previews
+   on the side; a greyed-out preview means that player has been eliminated.
+5. Clear 2+ lines at once to send garbage to a random still-alive opponent.
+6. Last person standing wins — everyone sees the result.
 
 ## Controls
 
 - **← / →** — move left/right
 - **↑** — rotate
 - **↓** — soft drop (hold for faster descent)
-- **Space** — hard drop (slam the piece down instantly)
-
-## Garbage rules
-
-| Lines cleared at once | Garbage sent to opponent |
-|---|---|
-| 1 | 0 |
-| 2 | 1 |
-| 3 | 2 |
-| 4 (Tetris) | 4 |
+- **Space** — hard drop
 
 ## Known limitations
 
 - No restart button — refresh the page for a rematch.
-- No wall-kick system as sophisticated as official Tetris (SRS); rotation
-  uses simple left/right nudges if the default rotation doesn't fit.
-- Same WebRTC caveat as before: strict firewalls without a TURN relay can
-  occasionally block the connection, though same-network wired connections
-  (like a school LAN) tend to work fine.
+- If the host disconnects, the match ends for everyone (the host is the
+  relay hub). Joiners disconnecting doesn't affect anyone else.
+- Same WebRTC caveat as always: a same-network/wired setup (like a school
+  LAN) tends to connect reliably; separate networks with strict firewalls
+  occasionally need a TURN relay, which isn't included here.

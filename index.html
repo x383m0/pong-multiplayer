@@ -3,19 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>1v1 Tetris Online</title>
+<title>Tetris Online — up to 4 players</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>1v1 Tetris — Online</h1>
+  <h1>Tetris Online — up to 4 players</h1>
 
   <div id="menu">
-    <button id="hostBtn">Host Game</button>
-    <div id="joinBox">
-      <input id="hostIdInput" placeholder="Enter host's code" />
-      <button id="joinBtn">Join Game</button>
+    <div id="chooseRole">
+      <button id="hostBtn">Host Game</button>
+      <div id="joinBox">
+        <input id="hostIdInput" placeholder="Enter host's code" />
+        <button id="joinBtn">Join Game</button>
+      </div>
     </div>
-    <p id="status"></p>
+
+    <div id="lobby" style="display:none;">
+      <p id="status"></p>
+      <ul id="lobbyList"></ul>
+      <button id="startBtn" style="display:none;">Start Game</button>
+    </div>
   </div>
 
   <div id="gameArea" style="display:none;">
@@ -29,14 +36,10 @@
     </div>
 
     <div class="panel side">
-      <div>
-        <h3>Next</h3>
-        <canvas id="nextPiece" width="96" height="96"></canvas>
-      </div>
-      <div>
-        <h3>Opponent</h3>
-        <canvas id="oppBoard" width="120" height="240"></canvas>
-      </div>
+      <h3>Next</h3>
+      <canvas id="nextPiece" width="96" height="96"></canvas>
+      <h3>Opponents</h3>
+      <div id="oppBoards"></div>
     </div>
   </div>
 
