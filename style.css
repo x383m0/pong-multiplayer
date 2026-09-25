@@ -16,6 +16,18 @@ body {
   box-sizing: border-box;
 }
 
+.mute-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #334155;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+.mute-btn:hover { background: #475569; }
+
 h1 {
   margin: 0;
   font-size: 1.5rem;
@@ -168,7 +180,6 @@ canvas {
 .result.lose { color: #f87171; }
 .controls { margin: 0; font-size: 0.85rem; color: #94a3b8; }
 
-/* New Visual Elements */
 .garbage-meter-container {
   width: 24px;
   height: 200px;
