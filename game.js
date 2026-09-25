@@ -1,5 +1,46 @@
-// ================= Sound System =================
+// ================= Sound System & Music =================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let musicMuted = false;
+
+// Tetris Theme (Korobeiniki) - [Frequency, Duration in 16th notes]
+const melody = [
+  [659.25, 4], [493.88, 2], [523.25, 2], [587.33, 4], [523.25, 2], [493.88, 2],
+  [440.00, 4], [440.00, 2], [523.25, 2], [659.25, 4], [587.33, 2], [523.25, 2],
+  [493.88, 6], [523.25, 2], [587.33, 4], [659.25, 4],
+  [523.25, 4], [440.00, 4], [440.00, 8]
+];
+const beatLen = 60 / 150 / 4; // 150 BPM
+let nextNoteTime = 0;
+let melodyIndex = 0;
+
+function updateMusic() {
+  if (musicMuted || !started || (myGame && myGame.gameOver)) return;
+  if (audioCtx.state === 'suspended') return;
+  
+  while (nextNoteTime < audioCtx.currentTime + 0.1) {
+    const [freq, durationBeats] = melody[melodyIndex];
+    const duration = durationBeats * beatLen;
+    
+    if (freq > 0) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      
+      gain.gain.setValueAtTime(0.015, nextNoteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, nextNoteTime + duration - 0.05);
+      
+      osc.start(nextNoteTime);
+      osc.stop(nextNoteTime + duration - 0.05);
+    }
+    
+    nextNoteTime += duration;
+    melodyIndex = (melodyIndex + 1) % melody.length;
+  }
+}
 
 function playSound(type, combo = 0) {
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -27,6 +68,13 @@ function playSound(type, combo = 0) {
     osc.frequency.setValueAtTime(400 + (combo * 50), now); 
     osc.frequency.exponentialRampToValueAtTime(800 + (combo * 50), now + 0.2);
     gain.gain.setValueAtTime(0.1, now); 
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'hard_drop') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.2);
+    gain.gain.setValueAtTime(0.15, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     osc.start(now); osc.stop(now + 0.2);
   }
@@ -241,8 +289,39 @@ function lockPiece(state, onLinesCleared) {
 function hardDrop(state, onLinesCleared) {
   if (state.gameOver || !state.piece) return;
   const p = state.piece;
-  while (!collide(state.board, p.matrix, p.row + 1, p.col)) p.row++;
-  state.score += 2;
+  let dropDistance = 0;
+  
+  while (!collide(state.board, p.matrix, p.row + 1, p.col)) {
+    p.row++;
+    dropDistance++;
+  }
+  
+  state.score += Math.max(2, dropDistance * 2);
+
+  // Explosive Impact Particles
+  for (let r = 0; r < p.matrix.length; r++) {
+    for (let c = 0; c < p.matrix[r].length; c++) {
+      if (p.matrix[r][c]) {
+        for(let i=0; i<4; i++) {
+          state.particles.push({
+            x: (p.col + c) * BLOCK + (Math.random() * BLOCK),
+            y: (p.row + r) * BLOCK + (Math.random() * BLOCK),
+            vx: (Math.random() - 0.5) * 15,
+            vy: (Math.random() - 1) * 20, 
+            life: 1.5,
+            color: COLORS[p.name]
+          });
+        }
+      }
+    }
+  }
+
+  const canvas = document.getElementById('myBoard');
+  canvas.classList.remove('shake');
+  void canvas.offsetWidth;
+  canvas.classList.add('shake');
+
+  playSound('hard_drop');
   lockPiece(state, onLinesCleared);
 }
 
@@ -303,9 +382,11 @@ function drawBoardToCtx(ctx, state, block, w, h) {
 
   if (state.particles) {
     state.particles.forEach(p => {
-      ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, p.life)})`;
+      ctx.fillStyle = p.color === 'white' ? `rgba(255, 255, 255, ${Math.max(0, p.life)})` : p.color;
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
       ctx.fillRect(p.x, p.y, 4, 4);
     });
+    ctx.globalAlpha = 1.0; 
   }
 
   if (state.combo > 1) {
@@ -367,9 +448,18 @@ const menu = document.getElementById('menu');
 const gameArea = document.getElementById('gameArea');
 const statusEl = document.getElementById('status');
 const garbageMeter = document.getElementById('garbageMeter');
+const muteBtn = document.getElementById('muteBtn');
 
 let peer = null, isHost = false, myId = null, connections = {}, players = {};
 let started = false, myGame = null, winnerId = null;
+
+muteBtn.onclick = () => {
+  musicMuted = !musicMuted;
+  muteBtn.textContent = musicMuted ? '🔇 Muted' : '🔊 Music';
+  if (!musicMuted && audioCtx.state !== 'suspended') {
+    nextNoteTime = audioCtx.currentTime; 
+  }
+};
 
 function nextFreeId() {
   for (let i = 1; i < MAX_PLAYERS; i++) if (!players[i] || players[i].connected === false) return i;
@@ -521,6 +611,10 @@ function buildOppSlots() {
 
 function beginLocalGame() {
   menu.style.display = 'none'; gameArea.style.display = 'flex';
+  
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  nextNoteTime = audioCtx.currentTime + 0.1;
+  
   myGame = newGame(); spawnPiece(myGame); buildOppSlots(); wireKeyboard();
   requestAnimationFrame(loop);
 }
@@ -536,6 +630,8 @@ let lastTime = 0, lastBroadcast = 0, announcedOut = false;
 function loop(ts) {
   const dt = Math.min(lastTime ? ts - lastTime : 16, 100);
   lastTime = ts;
+
+  updateMusic();
 
   if (winnerId === null && !myGame.gameOver) {
     if (myGame.state === 'countdown') {
