@@ -1,3 +1,37 @@
+// ================= Sound System =================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type, combo = 0) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+
+  if (type === 'move') {
+    osc.type = 'sine'; 
+    osc.frequency.setValueAtTime(300, now);
+    gain.gain.setValueAtTime(0.05, now); 
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.start(now); osc.stop(now + 0.05);
+  } else if (type === 'lock') {
+    osc.type = 'square'; 
+    osc.frequency.setValueAtTime(150, now); 
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+    gain.gain.setValueAtTime(0.05, now); 
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'clear') {
+    osc.type = 'triangle'; 
+    osc.frequency.setValueAtTime(400 + (combo * 50), now); 
+    osc.frequency.exponentialRampToValueAtTime(800 + (combo * 50), now + 0.2);
+    gain.gain.setValueAtTime(0.1, now); 
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  }
+}
+
 // ================= Constants =================
 const COLS = 10, ROWS = 20, BLOCK = 24;
 const NEXT_BLOCK = 20;
@@ -20,7 +54,7 @@ const SHAPES = {
 };
 const PIECE_NAMES = Object.keys(SHAPES);
 
-const GARBAGE_TABLE = { 1: 0, 2: 1, 3: 2, 4: 4 };
+const GARBAGE_TABLE = { 1: 1, 2: 3, 3: 5, 4: 8 };
 const SCORE_TABLE = { 1: 100, 2: 300, 3: 500, 4: 800 };
 
 // ================= Tetris core =================
@@ -61,6 +95,7 @@ function newGame() {
     score: 0,
     lines: 0,
     level: 0,
+    combo: 0,
     dropInterval: 800,
     dropTimer: 0,
     pendingGarbage: 0,
@@ -175,19 +210,29 @@ function lockPiece(state, onLinesCleared) {
   }
 
   if (cleared > 0) {
+    state.combo++;
     state.lines += cleared;
-    state.score += SCORE_TABLE[cleared] || 0;
+    state.score += (SCORE_TABLE[cleared] || 0) + (50 * state.combo);
     state.level = Math.floor(state.lines / 10);
     state.dropInterval = Math.max(120, 800 - state.level * 70);
-    const garbage = GARBAGE_TABLE[cleared] || 0;
-    if (garbage > 0) onLinesCleared(garbage);
     
-    if (cleared >= 4) {
+    const baseGarbage = GARBAGE_TABLE[cleared] || 0;
+    const comboBonus = state.combo > 1 ? Math.floor(state.combo / 2) : 0; 
+    const totalGarbage = baseGarbage + comboBonus;
+    
+    if (totalGarbage > 0) onLinesCleared(totalGarbage);
+    
+    playSound('clear', state.combo);
+    
+    if (cleared >= 4 || state.combo >= 3) {
       const canvas = document.getElementById('myBoard');
       canvas.classList.remove('shake');
       void canvas.offsetWidth;
       canvas.classList.add('shake');
     }
+  } else {
+    state.combo = 0;
+    playSound('lock');
   }
 
   if (!state.gameOver) spawnPiece(state);
@@ -231,7 +276,6 @@ function drawBoardToCtx(ctx, state, block, w, h) {
   }
 
   if (state.piece) {
-    // Draw Ghost
     let ghostRow = state.piece.row;
     while (!collide(state.board, state.piece.matrix, ghostRow + 1, state.piece.col)) {
       ghostRow++;
@@ -247,7 +291,6 @@ function drawBoardToCtx(ctx, state, block, w, h) {
       }
     }
     
-    // Draw Real Piece
     ctx.globalAlpha = 1.0;
     for (let r = 0; r < state.piece.matrix.length; r++) {
       for (let c = 0; c < state.piece.matrix[r].length; c++) {
@@ -258,7 +301,6 @@ function drawBoardToCtx(ctx, state, block, w, h) {
     }
   }
 
-  // Draw Particles
   if (state.particles) {
     state.particles.forEach(p => {
       ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, p.life)})`;
@@ -266,7 +308,15 @@ function drawBoardToCtx(ctx, state, block, w, h) {
     });
   }
 
-  // Draw Countdown
+  if (state.combo > 1) {
+    const alpha = Math.max(0, 1 - (state.dropTimer / state.dropInterval));
+    ctx.fillStyle = `rgba(250, 204, 21, ${alpha})`; 
+    ctx.font = 'bold 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${state.combo} COMBO!`, w / 2, h / 3);
+  }
+
   if (state.state === 'countdown') {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(0, 0, w, h);
@@ -341,7 +391,6 @@ function renderLobby() {
   }
 }
 
-// ---------- Host & Client Core Networking ----------
 function startHost() {
   isHost = true; myId = 0; players[0] = { id: 0, connected: true, alive: true };
   peer = new Peer();
@@ -428,10 +477,10 @@ function wireKeyboard() {
   document.addEventListener('keydown', e => {
     if (!myGame || myGame.gameOver || myGame.state !== 'playing') return;
     switch (e.key) {
-      case 'ArrowLeft': if (!keysHeld.left) { keysHeld.left = true; tryMove(myGame, 0, -1); das.left.timer = 0; das.left.fired = false; } e.preventDefault(); break;
-      case 'ArrowRight': if (!keysHeld.right) { keysHeld.right = true; tryMove(myGame, 0, 1); das.right.timer = 0; das.right.fired = false; } e.preventDefault(); break;
+      case 'ArrowLeft': if (!keysHeld.left) { keysHeld.left = true; tryMove(myGame, 0, -1); playSound('move'); das.left.timer = 0; das.left.fired = false; } e.preventDefault(); break;
+      case 'ArrowRight': if (!keysHeld.right) { keysHeld.right = true; tryMove(myGame, 0, 1); playSound('move'); das.right.timer = 0; das.right.fired = false; } e.preventDefault(); break;
       case 'ArrowDown': keysHeld.down = true; e.preventDefault(); break;
-      case 'ArrowUp': if (!pressedOnce.has('up')) { pressedOnce.add('up'); tryRotate(myGame); } e.preventDefault(); break;
+      case 'ArrowUp': if (!pressedOnce.has('up')) { pressedOnce.add('up'); tryRotate(myGame); playSound('move'); } e.preventDefault(); break;
       case ' ': if (!pressedOnce.has('space')) { pressedOnce.add('space'); hardDrop(myGame, onLinesCleared); } e.preventDefault(); break;
       case 'c':
       case 'C':
@@ -496,7 +545,6 @@ function loop(ts) {
       handleDAS(dt);
       update(myGame, dt, keysHeld, onLinesCleared);
       
-      // Update Particles
       myGame.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= 0.03; });
       myGame.particles = myGame.particles.filter(p => p.life > 0);
       
