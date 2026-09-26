@@ -1,0 +1,21 @@
+WINGS ARENA — TEMPORARY AUDIO SOURCES
+
+The current audio pass is intentionally modular so individual sounds can be
+replaced later without changing game logic.
+
+User-provided A-10 recordings:
+- audio/a10-engine.ogg: converted from 456267__soundfxstudio__a-10-thunderbolt-maximum-rpm.wav
+- audio/a10-cannon.ogg: processed close-range 1-second slice from 205582__qubodup__a-10.ogg
+- audio/a10-warthog-reference.ogg: original full A-10 reference recording
+
+Temporary military effects from the uploaded sndfx.zip / War on Water: SNDFX:
+- Airplanes/airplane.ogg -> audio/jet-flyby.ogg
+- Airplanes/airplane1.ogg -> audio/boost-air.ogg
+- Airplanes/aiplaneexplode.ogg -> audio/airplane-explosion.ogg
+- Guns/torpedo1.ogg -> audio/missile-launch.ogg
+- Guns/gun2Heavy.ogg -> audio/heavy-impact.ogg
+- Guns/throwgrenade.ogg -> audio/flare.ogg
+- Interface/callhelp.ogg -> audio/lock-alarm.ogg
+
+These temporary effects can be replaced later by swapping files with the same
+filenames, without editing game.js.

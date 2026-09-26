@@ -3,57 +3,89 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tetris Online — up to 4 players</title>
+<title>Wings Arena — multiplayer sky battle</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Tetris Online — up to 4 players</h1>
 
   <div id="menu">
+    <div class="brand-mark"><span></span><span></span><span></span></div>
+    <div class="eyebrow">SKYLINE NETWORK // ONLINE</div>
+    <h1>WINGS<span>ARENA</span></h1>
+    <p class="tagline">Rise above the clouds. Outfly the lobby.</p>
+    <div class="feature-row"><span>✦ 8 pilots</span><span>✦ LIVE DOGFIGHTS</span><span>✦ ZERO INSTALL</span></div>
+
     <div id="chooseRole">
-      <button id="hostBtn">Host Game</button>
+      <label class="field-label" for="nameInput">CALLSIGN</label>
+      <input id="nameInput" maxlength="14" placeholder="ENTER YOUR CALLSIGN" autocomplete="off" />
+      <button id="hostBtn"><span>HOST A FLIGHT</span><b>→</b></button>
       <div id="joinBox">
-        <input id="hostIdInput" placeholder="Enter host's code" />
-        <button id="joinBtn">Join Game</button>
+        <input id="hostIdInput" placeholder="ROOM CODE" autocomplete="off" />
+        <button id="joinBtn"><span>JOIN</span><b>→</b></button>
       </div>
+      <p class="microcopy">Share your room code with your squadron.</p>
     </div>
 
     <div id="lobby" style="display:none;">
-      <p id="status"></p>
+      <div class="lobby-head"><span class="status-dot"></span><p id="status"></p></div>
       <ul id="lobbyList"></ul>
-      <button id="startBtn" style="display:none;">Start Game</button>
+      <button id="startBtn" style="display:none;"><span>LAUNCH SORTIE</span><b>→</b></button>
+      <p class="hint" id="waitHint">Waiting for the flight leader…</p>
     </div>
+    <div class="menu-footer"><span>WINGS ARENA v1.0</span><span>BEST WITH MOUSE + KEYBOARD</span></div>
   </div>
 
   <div id="gameArea" style="display:none;">
-    <div class="panel side">
-      <h3>Hold</h3>
-      <canvas id="holdPiece" width="96" height="96"></canvas>
-      <h3 style="margin-top:12px;">Garbage</h3>
-      <div class="garbage-meter-container">
-        <div id="garbageMeter" class="garbage-meter"></div>
-      </div>
-    </div>
+    <canvas id="sky"></canvas>
 
-    <div class="panel">
-      <h2>You</h2>
-      <canvas id="myBoard" width="240" height="480"></canvas>
-      <div class="stats">
-        <div>Score: <span id="score">0</span></div>
-        <div>Lines: <span id="lines">0</span></div>
+    <div id="hud">
+      <div id="bars">
+        <div class="bar-row">
+          <span class="bar-label">HP</span>
+          <div class="bar-track"><div id="hpFill" class="bar-fill hp"></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">BOOST</span>
+          <div class="bar-track"><div id="boostFill" class="bar-fill boost"></div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">HEAT</span>
+          <div class="bar-track"><div id="heatFill" class="bar-fill heat"></div></div>
+        </div>
       </div>
-    </div>
 
-    <div class="panel side">
-      <h3>Next</h3>
-      <canvas id="nextPiece" width="96" height="288"></canvas>
-      <h3 style="margin-top:12px;">Opponents</h3>
-      <div id="oppBoards"></div>
+      <div id="scorePanel">
+        <div class="panel-kicker">FLIGHT STATUS</div>
+        <div class="score-line"><span>SCORE</span><strong id="scoreVal">0</strong></div>
+        <div class="score-line"><span>KILLS</span><strong id="killsVal">0</strong></div>
+      </div>
+
+      <div id="weaponPanel">
+        <div class="panel-kicker">LOADOUT</div>
+        <div id="missileCount"><i class="weapon-icon missile-icon"></i> MISSILES <b>4/4</b></div>
+        <div id="flareCount"><i class="weapon-icon flare-icon"></i> FLARES <b>3/3</b></div>
+      </div>
+
+      <div id="lockWarning" style="display:none;">⚠ MISSILE LOCK — PRESS F TO FLARE!</div>
+
+      <div id="leaderboard">
+        <h4><span>LIVE RANKING</span><em>PTS</em></h4>
+        <ol id="lbList"></ol>
+      </div>
+
+      <div id="killFeed"></div>
+
+      <canvas id="minimap" width="180" height="75"></canvas>
+
+      <div id="respawnOverlay" style="display:none;">
+        <div class="respawn-kicker">SIGNAL LOST</div>
+        <div id="respawnMsg">Shot down!</div>
+        <div id="respawnTimer"></div>
+      </div>
     </div>
   </div>
 
-  <p id="resultMsg" class="result"></p>
-  <p class="controls">Controls: ← → move · ↑ rotate · ↓ soft drop · Space hard drop · C hold</p>
+  <div class="controls"><span><b>MOUSE</b> steer</span><span><b>W / ↑</b> boost</span><span><b>CLICK / SPACE</b> cannon</span><span><b>Q</b> missile</span><span><b>F</b> flare</span></div>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="game.js"></script>
