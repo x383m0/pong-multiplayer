@@ -138,6 +138,19 @@ against a modified client.
 - No sound effects or mobile touch controls yet — keyboard/mouse only.
 
 ## Recent fixes
+- The plane silhouette was badly out of proportion (paper-thin fuselage, an
+  oversized wing, a canopy that read as a giant eye) and looked broken at
+  most angles. Rebuilt with a properly proportioned fuselage and
+  correctly sized/outlined wing, tail and fin.
+- Missiles that never caught their target used to just vanish with zero
+  warning when their fuel ran out, which looked like a hit had failed to
+  register even when the missile had clearly gotten close. They now
+  detonate in place on expiry, the proximity fuse is more forgiving, and
+  they turn faster, so a near-miss reads as a miss instead of a silent
+  bug. The arena was also sized back down so missiles have a realistic
+  chance to close the distance before running out of fuel.
+- The ground is now open water (with a wave-line surface) instead of
+  grass hills.
 - Shots fired by anyone other than the host used to be invisible to the host
   and couldn't damage it — the host relayed those shots to other clients but
   never added them to its own local bullet list. It now does (and the same

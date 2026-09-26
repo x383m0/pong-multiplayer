@@ -1,6 +1,6 @@
 // ================= Constants =================
-const WORLD_W = 4800, WORLD_H = 2000;
-const GROUND_Y = WORLD_H - 90;    // top of the hill/ground silhouette (side-view floor)
+const WORLD_W = 3600, WORLD_H = 1700;
+const GROUND_Y = WORLD_H - 70;    // top of the water (side-view floor)
 const MAX_PLAYERS = 8;
 
 const PLANE_SPEED = 230;          // px/s forward, constant auto-flight
@@ -18,8 +18,8 @@ const OVERHEAT_RESET_FRAC = 0.1;  // must cool back down to 10% heat before firi
 
 // Homing missiles: limited ammo, regenerates slowly, turns faster than a
 // plane can (so out-turning one alone is hard) but can be decoyed by a flare.
-const MISSILE_SPEED = 360, MISSILE_TURN_RATE = 2.6, MISSILE_LIFE = 4500, MISSILE_DAMAGE = 42;
-const MISSILE_HIT_RADIUS = 26, MISSILE_LOCK_RANGE = 900, MISSILE_LOCK_CONE = Math.PI / 3;
+const MISSILE_SPEED = 360, MISSILE_TURN_RATE = 3.3, MISSILE_LIFE = 4500, MISSILE_DAMAGE = 42;
+const MISSILE_HIT_RADIUS = 36, MISSILE_LOCK_RANGE = 800, MISSILE_LOCK_CONE = Math.PI / 3;
 const MISSILE_MAX = 4, MISSILE_REGEN_MS = 5000, MISSILE_COOLDOWN = 900;
 
 // Flares: a limited-charge countermeasure that breaks a missile's lock if
@@ -290,7 +290,7 @@ function updateBullets(dtSec) {
   const now = performance.now();
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
-    if (now - b.born > BULLET_LIFE) { bullets.splice(i, 1); continue; }
+    if (now - b.born > BULLET_LIFE) { spawnExplosion(b.x, b.y, 'muzzle'); bullets.splice(i, 1); continue; }
     b.x += Math.cos(b.angle) * BULLET_SPEED * dtSec;
     b.y += Math.sin(b.angle) * BULLET_SPEED * dtSec;
   }
@@ -357,7 +357,13 @@ function updateMissiles(dtSec) {
   const now = performance.now();
   for (let i = missiles.length - 1; i >= 0; i--) {
     const m = missiles[i];
-    if (now - m.born > MISSILE_LIFE) { missiles.splice(i, 1); continue; }
+    if (now - m.born > MISSILE_LIFE) {
+      // Used to just vanish here with no feedback at all if it never caught
+      // its target — now it detonates in place so a miss is at least visible.
+      spawnExplosion(m.x, m.y, 'blast');
+      missiles.splice(i, 1);
+      continue;
+    }
 
     if (m.targetId != null) {
       const target = players[m.targetId];
@@ -735,81 +741,57 @@ function resizeCanvas() {
 
 function drawPlaneShape(ctx, color, alive) {
   const fill = alive ? color : 'rgba(120,120,120,0.6)';
-  const shade = alive ? darken(color, 0.35) : 'rgba(90,90,90,0.6)';
+  const shade = alive ? darken(color, 0.4) : 'rgba(90,90,90,0.6)';
+  const outlineColor = 'rgba(0,0,0,0.45)';
 
-  // Side-on F-16 silhouette: nose at +x, tail at -x. Local +y is "down"
-  // (toward the belly/wing) and -y is "up" (toward the canopy/fin) — since
-  // the plane fully rotates to face the cursor, it banks, dives and loops
-  // like a real side-view dogfighter instead of always staying level.
+  function poly(points) {
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.closePath();
+  }
 
-  // Horizontal stabilizer (small tail wing, drawn first so the fuselage
-  // overlaps its root)
+  // Main wing (swept trapezoid tucked under the fuselage)
   ctx.fillStyle = shade;
-  ctx.beginPath();
-  ctx.moveTo(-14, 1);
-  ctx.lineTo(-23, 1.5);
-  ctx.lineTo(-25, 5.5);
-  ctx.lineTo(-17, 3.5);
-  ctx.closePath();
-  ctx.fill();
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 1;
+  poly([[1, 3], [-10, 4], [-15, 12], [-6, 11]]);
+  ctx.fill(); ctx.stroke();
 
-  // Main wing (swept back, below the fuselage)
-  ctx.fillStyle = shade;
-  ctx.beginPath();
-  ctx.moveTo(4, 2);
-  ctx.lineTo(-4, 2.5);
-  ctx.lineTo(-15, 15);
-  ctx.lineTo(-8, 16);
-  ctx.lineTo(3, 5.5);
-  ctx.closePath();
-  ctx.fill();
+  // Horizontal stabilizer (small tail wing)
+  poly([[-16, 1.5], [-23, 2], [-25, 5], [-19, 4]]);
+  ctx.fill(); ctx.stroke();
 
-  // Vertical tail fin (up, at the rear)
-  ctx.fillStyle = shade;
-  ctx.beginPath();
-  ctx.moveTo(-13, -1);
-  ctx.lineTo(-22, -1.5);
-  ctx.lineTo(-24, -10);
-  ctx.lineTo(-18, -3);
-  ctx.closePath();
-  ctx.fill();
+  // Vertical tail fin
+  poly([[-15, -1.5], [-22, -2], [-24, -9], [-18, -3]]);
+  ctx.fill(); ctx.stroke();
 
-  // Fuselage (nose to tail, slightly deeper belly than spine)
+  // Fuselage — a proper thick body from nose to tail
   const outline = [
-    [24, 0],     // nose tip
-    [17, -2.6],  // nose taper
-    [8, -4.4],   // canopy blend
-    [-6, -3.6],  // spine
-    [-17, -2],   // tail boom taper
-    [-24, 0],    // tail
-    [-17, 3],    // lower tail boom
-    [-4, 4.8],   // belly
-    [10, 4]      // lower nose
+    [24, 0], [18, -3], [4, -5.5], [-12, -4.5], [-22, -1.5],
+    [-25, 0], [-22, 1.5], [-12, 4.5], [0, 5.5], [15, 3.3]
   ];
   ctx.fillStyle = fill;
-  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(outline[0][0], outline[0][1]);
-  for (let i = 1; i < outline.length; i++) ctx.lineTo(outline[i][0], outline[i][1]);
-  ctx.closePath();
+  ctx.strokeStyle = outlineColor;
+  ctx.lineWidth = 1.4;
+  poly(outline);
   ctx.fill();
   ctx.stroke();
 
-  // Bubble canopy
-  ctx.fillStyle = alive ? 'rgba(35,55,80,0.9)' : 'rgba(70,70,70,0.5)';
+  // Cockpit canopy
+  ctx.fillStyle = alive ? 'rgba(30,50,75,0.9)' : 'rgba(70,70,70,0.5)';
   ctx.beginPath();
-  ctx.ellipse(6, -3.4, 5.2, 2.4, -0.15, 0, Math.PI * 2);
+  ctx.ellipse(4.5, -3.6, 4, 1.9, -0.1, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(180,220,255,0.55)';
+  ctx.fillStyle = 'rgba(190,225,255,0.5)';
   ctx.beginPath();
-  ctx.ellipse(7.5, -4, 2, 1, -0.15, 0, Math.PI * 2);
+  ctx.ellipse(5.7, -4.1, 1.6, 0.8, -0.1, 0, Math.PI * 2);
   ctx.fill();
 
   // Engine nozzle glow
   ctx.fillStyle = alive ? '#ffb347' : 'rgba(90,90,90,0.5)';
   ctx.beginPath();
-  ctx.arc(-24, 0, 1.9, 0, Math.PI * 2);
+  ctx.arc(-25, 0, 2, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -924,15 +906,16 @@ function drawExplosion(ctx, e, now) {
 
 function drawGround(ctx) {
   const grad = ctx.createLinearGradient(0, GROUND_Y, 0, WORLD_H);
-  grad.addColorStop(0, '#4d8f57');
-  grad.addColorStop(1, '#1f4a2a');
+  grad.addColorStop(0, '#2f7fb0');
+  grad.addColorStop(0.35, '#1f5f8f');
+  grad.addColorStop(1, '#0d3455');
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(0, WORLD_H);
   ctx.lineTo(0, GROUND_Y);
-  const step = 160;
+  const step = 120;
   for (let x = 0; x <= WORLD_W; x += step) {
-    const h = Math.sin(x / 420) * 16 + Math.sin(x / 150 + 1.3) * 8;
+    const h = Math.sin(x / 260) * 6 + Math.sin(x / 90 + 1.3) * 3;
     ctx.lineTo(x, GROUND_Y + h);
   }
   ctx.lineTo(WORLD_W, GROUND_Y);
@@ -940,15 +923,27 @@ function drawGround(ctx) {
   ctx.closePath();
   ctx.fill();
 
-  // Ridge highlight along the hilltop
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-  ctx.lineWidth = 3;
+  // Wave-line highlight along the surface
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   for (let x = 0; x <= WORLD_W; x += step) {
-    const h = Math.sin(x / 420) * 16 + Math.sin(x / 150 + 1.3) * 8;
+    const h = Math.sin(x / 260) * 6 + Math.sin(x / 90 + 1.3) * 3;
     if (x === 0) ctx.moveTo(x, GROUND_Y + h); else ctx.lineTo(x, GROUND_Y + h);
   }
   ctx.stroke();
+
+  // A couple of fainter, slightly submerged wave lines for texture
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.lineWidth = 1.5;
+  [18, 40].forEach((depth, di) => {
+    ctx.beginPath();
+    for (let x = 0; x <= WORLD_W; x += step) {
+      const h = Math.sin(x / 260 + di + 1) * 5 + Math.sin(x / 100 + di * 2) * 3;
+      if (x === 0) ctx.moveTo(x, GROUND_Y + depth + h); else ctx.lineTo(x, GROUND_Y + depth + h);
+    }
+    ctx.stroke();
+  });
 }
 
 function render(now) {
@@ -1005,7 +1000,7 @@ function drawMinimap(now) {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(20,30,50,0.4)';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(40,90,50,0.6)';
+  ctx.fillStyle = 'rgba(31,95,143,0.7)';
   ctx.fillRect(0, GROUND_Y * scaleY, W, H - GROUND_Y * scaleY);
 
   coins.forEach(c => {
