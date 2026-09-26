@@ -1,8 +1,10 @@
 # Wings Arena — multiplayer sky battle (up to 8 players)
 
-A free-for-all F-16 dogfight in the browser. One person hosts, up to seven
-friends join with a code. Fly around an open arena, collect coins for score,
-gun down or missile opponents, respawn, repeat. No server, no build step, no
+A free-for-all F-16 dogfight in the browser, rendered side-on (think
+wings.io) rather than from above — planes bank, dive and loop as they turn to
+face your cursor. One person hosts, up to seven friends join with a code.
+Fly around an open arena above rolling hills, collect coins for score, gun
+down or missile opponents, respawn, repeat. No server, no build step, no
 dependencies to install — same approach as the Tetris project this was built
 from.
 

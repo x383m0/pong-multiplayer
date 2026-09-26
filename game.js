@@ -1,5 +1,6 @@
 // ================= Constants =================
-const WORLD_W = 3000, WORLD_H = 3000;
+const WORLD_W = 4800, WORLD_H = 2000;
+const GROUND_Y = WORLD_H - 90;    // top of the hill/ground silhouette (side-view floor)
 const MAX_PLAYERS = 8;
 
 const PLANE_SPEED = 230;          // px/s forward, constant auto-flight
@@ -70,6 +71,15 @@ function rand(min, max) { return min + Math.random() * (max - min); }
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function dist(x1, y1, x2, y2) { return Math.hypot(x1 - x2, y1 - y2); }
 function colorFor(id) { return COLORS[id % COLORS.length]; }
+// Darkens a '#rrggbb' color by `amt` (0-1) for shading wings/tail surfaces
+// that sit "behind" the fuselage in a side-view silhouette.
+function darken(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, ((n >> 16) & 255) * (1 - amt));
+  const g = Math.max(0, ((n >> 8) & 255) * (1 - amt));
+  const b = Math.max(0, (n & 255) * (1 - amt));
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
+}
 // Shortest signed angular distance from `from` to `to`, in (-PI, PI].
 function angleDiff(from, to) {
   let d = (to - from) % (Math.PI * 2);
@@ -94,16 +104,16 @@ function removeProjectileLocal(kind, id) {
 
 function buildClouds() {
   clouds = [];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 90; i++) {
     clouds.push({
-      x: rand(0, WORLD_W), y: rand(0, WORLD_H),
+      x: rand(0, WORLD_W), y: rand(0, GROUND_Y - 40),
       r: rand(30, 90), a: rand(0.08, 0.22)
     });
   }
 }
 
 function randomSpawnPoint() {
-  return { x: rand(150, WORLD_W - 150), y: rand(150, WORLD_H - 150) };
+  return { x: rand(200, WORLD_W - 200), y: rand(120, GROUND_Y - 160) };
 }
 
 function freshPlayerState(id, name) {
@@ -168,7 +178,7 @@ function updateLocalPlane(dtSec, keys) {
   myState.x += Math.cos(myState.angle) * speed * dtSec;
   myState.y += Math.sin(myState.angle) * speed * dtSec;
   myState.x = clamp(myState.x, 30, WORLD_W - 30);
-  myState.y = clamp(myState.y, 30, WORLD_H - 30);
+  myState.y = clamp(myState.y, 30, GROUND_Y - 40);
 
   // Weapon heat: cools passively when you let off the trigger; maxing it
   // out locks the gun until it drops back down, so you can't just hold fire.
@@ -725,64 +735,81 @@ function resizeCanvas() {
 
 function drawPlaneShape(ctx, color, alive) {
   const fill = alive ? color : 'rgba(120,120,120,0.6)';
+  const shade = alive ? darken(color, 0.35) : 'rgba(90,90,90,0.6)';
 
-  // Top-down F-16 silhouette: nose at +x, engine nozzle at -x, symmetric
-  // about the x-axis. One side of the outline is listed below; the other
-  // half is drawn by mirroring y, so the shape is always perfectly symmetric.
+  // Side-on F-16 silhouette: nose at +x, tail at -x. Local +y is "down"
+  // (toward the belly/wing) and -y is "up" (toward the canopy/fin) — since
+  // the plane fully rotates to face the cursor, it banks, dives and loops
+  // like a real side-view dogfighter instead of always staying level.
+
+  // Horizontal stabilizer (small tail wing, drawn first so the fuselage
+  // overlaps its root)
+  ctx.fillStyle = shade;
+  ctx.beginPath();
+  ctx.moveTo(-14, 1);
+  ctx.lineTo(-23, 1.5);
+  ctx.lineTo(-25, 5.5);
+  ctx.lineTo(-17, 3.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Main wing (swept back, below the fuselage)
+  ctx.fillStyle = shade;
+  ctx.beginPath();
+  ctx.moveTo(4, 2);
+  ctx.lineTo(-4, 2.5);
+  ctx.lineTo(-15, 15);
+  ctx.lineTo(-8, 16);
+  ctx.lineTo(3, 5.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Vertical tail fin (up, at the rear)
+  ctx.fillStyle = shade;
+  ctx.beginPath();
+  ctx.moveTo(-13, -1);
+  ctx.lineTo(-22, -1.5);
+  ctx.lineTo(-24, -10);
+  ctx.lineTo(-18, -3);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fuselage (nose to tail, slightly deeper belly than spine)
   const outline = [
-    [22, 0],    // nose tip
-    [13, 2],    // nose taper
-    [8, 2.6],   // intake shoulder
-    [5, 5.4],   // canopy/LERX blend
-    [1, 4.4],
-    [-3, 7.2],  // leading edge root extension (LERX)
-    [-7, 18],   // wingtip
-    [-12, 14],  // wing trailing edge
-    [-13, 6],   // fuselage side aft of wing
-    [-16, 9],   // stabilator tip
-    [-19, 5],   // stabilator trailing edge
-    [-20, 2.4], // tail taper
-    [-22, 0]    // engine nozzle
+    [24, 0],     // nose tip
+    [17, -2.6],  // nose taper
+    [8, -4.4],   // canopy blend
+    [-6, -3.6],  // spine
+    [-17, -2],   // tail boom taper
+    [-24, 0],    // tail
+    [-17, 3],    // lower tail boom
+    [-4, 4.8],   // belly
+    [10, 4]      // lower nose
   ];
-
   ctx.fillStyle = fill;
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(outline[0][0], outline[0][1]);
   for (let i = 1; i < outline.length; i++) ctx.lineTo(outline[i][0], outline[i][1]);
-  for (let i = outline.length - 2; i >= 1; i--) ctx.lineTo(outline[i][0], -outline[i][1]);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-
-  // Spine centerline (subtle panel-line detail)
-  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(1, 0);
-  ctx.lineTo(-19, 0);
-  ctx.stroke();
-
-  // Vertical tail fin (rendered as a dark sliver since we're viewing from above)
-  ctx.fillStyle = alive ? 'rgba(0,0,0,0.32)' : 'rgba(60,60,60,0.4)';
-  ctx.beginPath();
-  ctx.moveTo(-15, 0);
-  ctx.lineTo(-22, 0);
-  ctx.lineTo(-19, 1.6);
-  ctx.closePath();
-  ctx.fill();
 
   // Bubble canopy
   ctx.fillStyle = alive ? 'rgba(35,55,80,0.9)' : 'rgba(70,70,70,0.5)';
   ctx.beginPath();
-  ctx.ellipse(8, 0, 5, 2.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(6, -3.4, 5.2, 2.4, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(180,220,255,0.55)';
+  ctx.beginPath();
+  ctx.ellipse(7.5, -4, 2, 1, -0.15, 0, Math.PI * 2);
   ctx.fill();
 
   // Engine nozzle glow
   ctx.fillStyle = alive ? '#ffb347' : 'rgba(90,90,90,0.5)';
   ctx.beginPath();
-  ctx.arc(-22, 0, 1.8, 0, Math.PI * 2);
+  ctx.arc(-24, 0, 1.9, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -895,6 +922,35 @@ function drawExplosion(ctx, e, now) {
   ctx.restore();
 }
 
+function drawGround(ctx) {
+  const grad = ctx.createLinearGradient(0, GROUND_Y, 0, WORLD_H);
+  grad.addColorStop(0, '#4d8f57');
+  grad.addColorStop(1, '#1f4a2a');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(0, WORLD_H);
+  ctx.lineTo(0, GROUND_Y);
+  const step = 160;
+  for (let x = 0; x <= WORLD_W; x += step) {
+    const h = Math.sin(x / 420) * 16 + Math.sin(x / 150 + 1.3) * 8;
+    ctx.lineTo(x, GROUND_Y + h);
+  }
+  ctx.lineTo(WORLD_W, GROUND_Y);
+  ctx.lineTo(WORLD_W, WORLD_H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ridge highlight along the hilltop
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let x = 0; x <= WORLD_W; x += step) {
+    const h = Math.sin(x / 420) * 16 + Math.sin(x / 150 + 1.3) * 8;
+    if (x === 0) ctx.moveTo(x, GROUND_Y + h); else ctx.lineTo(x, GROUND_Y + h);
+  }
+  ctx.stroke();
+}
+
 function render(now) {
   const ctx = skyCtx;
   const W = skyCanvas.width, H = skyCanvas.height;
@@ -914,9 +970,15 @@ function render(now) {
     ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
   });
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(0, 0, WORLD_W, WORLD_H);
+  drawGround(ctx);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, WORLD_H);
+  ctx.moveTo(WORLD_W, 0); ctx.lineTo(WORLD_W, WORLD_H);
+  ctx.moveTo(0, 0); ctx.lineTo(WORLD_W, 0);
+  ctx.stroke();
 
   coins.forEach(c => drawCoin(ctx, c, now));
   flares.forEach(f => drawFlare(ctx, f, now));
@@ -938,21 +1000,23 @@ function render(now) {
 }
 
 function drawMinimap(now) {
-  const ctx = miniCtx, S = miniCanvas.width;
-  ctx.clearRect(0, 0, S, S);
+  const ctx = miniCtx, W = miniCanvas.width, H = miniCanvas.height;
+  const scaleX = W / WORLD_W, scaleY = H / WORLD_H;
+  ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(20,30,50,0.4)';
-  ctx.fillRect(0, 0, S, S);
-  const scale = S / WORLD_W;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(40,90,50,0.6)';
+  ctx.fillRect(0, GROUND_Y * scaleY, W, H - GROUND_Y * scaleY);
 
   coins.forEach(c => {
     ctx.fillStyle = '#ffd166';
-    ctx.fillRect(c.x * scale - 1, c.y * scale - 1, 2, 2);
+    ctx.fillRect(c.x * scaleX - 1, c.y * scaleY - 1, 2, 2);
   });
   Object.values(players).forEach(p => {
     if (p.connected === false || p.alive === false) return;
     ctx.fillStyle = p.id === myId ? '#fff' : (p.color || colorFor(p.id));
     ctx.beginPath();
-    ctx.arc(p.x * scale, p.y * scale, p.id === myId ? 3.5 : 2.5, 0, Math.PI * 2);
+    ctx.arc(p.x * scaleX, p.y * scaleY, p.id === myId ? 3 : 2.2, 0, Math.PI * 2);
     ctx.fill();
   });
 }
