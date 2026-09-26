@@ -1,159 +1,73 @@
-# Wings Arena — multiplayer sky battle (up to 8 players)
+# Tetris Online — up to 4 players
 
-A free-for-all F-16 dogfight in the browser, rendered side-on (think
-wings.io) rather than from above — planes bank, dive and loop as they turn to
-face your cursor. One person hosts, up to seven friends join with a code.
-Fly around an open arena above rolling hills, collect coins for score, gun
-down or missile opponents, respawn, repeat. No server, no build step, no
-dependencies to install — same approach as the Tetris project this was built
-from.
+One person hosts, up to three friends join with a code. Everyone plays their
+own board; clearing 2+ lines at once fires garbage at a random opponent.
+Last player standing wins.
 
 ## Dependencies to install
 
-None. Just `index.html`, `style.css`, `game.js`, loading PeerJS from a CDN:
+Still none. Same as before — `index.html`, `style.css`, `game.js`, loading
+PeerJS from a CDN:
 
 ```html
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 ```
 
-## How the networking works (same hub topology as before)
+## What changed from the 2-player version
 
-With more than two players, everyone connecting directly to everyone else
-gets complicated fast. So everyone connects only to the host, and the host
-relays messages — if Player 2 shoots at Player 3, that shot travels
-Player 2 → Host → Player 3. Joiners only ever need the host's code, never
-each other's.
+**Networking (hub topology):** with more than 2 players, having everyone
+connect directly to everyone else gets complicated fast. Instead, everyone
+connects only to the host, and the host relays messages between players —
+so if Player 2 attacks Player 3, that message travels Player 2 → Host →
+Player 3. This keeps the setup simple: joiners only ever need the host's
+code, never each other's.
 
-Split of responsibilities:
+**Two bugs fixed:**
 
-- **Each client is authoritative over its own plane.** You decide your own
-  position, heading, and — crucially — whether an incoming bullet hit *you*.
-  This keeps movement perfectly smooth locally (no waiting on the network)
-  and matches how the Tetris version had each player own their own board.
-- **The host is authoritative over coins and kill credit.** The host spawns
-  coins, decides who gets credit when a `collect` message arrives first, and
-  tallies kills/deaths when a `died` message arrives — so score can't
-  double-count even if two players grab the same coin in the same instant.
-- **Position updates broadcast ~15 times/sec** (every 66ms), same cadence as
-  the Tetris board sync. Each client still *renders* at a full 60fps, though:
-  incoming updates are stored as a target position, and every other player's
-  plane glides toward that target each frame instead of snapping to it. Without
-  this, remote planes visibly teleport 15 times a second, which reads as
-  choppy, low-framerate motion even though your own plane is smooth.
-- **Shots are relayed as fire-and-forget events** — the shooter simulates the
-  bullet locally and tells everyone else "a bullet was fired from here, going
-  this way," and each client checks that bullet against their own plane only.
-- **Missiles and flares work the same fire-and-forget way**, with one twist:
-  a missile also carries a `targetId` (whoever it locked onto at launch).
-  Every client simulates that missile's homing turn independently, steering
-  it toward wherever it currently believes the target is (using the same
-  synced/interpolated position everyone already has). Only the locked target
-  — or anyone, once a flare knocks the lock off — checks it for a hit against
-  their own plane, exactly like bullets.
+1. **Hard drop placing multiple pieces per press.** The browser's built-in
+   "is this key being held down" signal isn't fully reliable across
+   browsers, so a single space-bar press was occasionally being read as
+   several. Movement keys now track their own held/not-held state manually
+   instead of trusting the browser, so each press fires exactly once.
+2. **Inconsistent left/right movement (1, 2, or 5 steps).** This was almost
+   certainly a "stuck key" problem: if the browser tab loses focus for even
+   a moment while a key is held (switching windows, alt-tabbing to grab the
+   host's code, etc.), the browser can miss the "key released" event —
+   so the game kept thinking the key was still held down. Now, the instant
+   the window loses focus, all movement is force-reset, so a stray tab
+   switch can't leave a key "stuck." A lag spike is also now capped so it
+   can't be "caught up" in one big multi-step jump.
 
 ## Hosting on GitHub Pages
 
-1. Create a new repo (or reuse the Tetris one) and upload `index.html`,
-   `style.css`, and `game.js` to the root — drag-and-drop via
-   **Add file → Upload files**, then commit.
-2. In the repo, go to **Settings → Pages**, set the source to your default
-   branch (usually `main`) and the root folder, and save.
-3. GitHub gives you a URL like `https://yourname.github.io/your-repo/`.
-   Share that link — anyone who opens it can host or join a match.
-4. Future edits: just re-upload the changed files and commit. Pages
-   redeploys automatically.
+Same as before: replace `index.html`, `style.css`, and `game.js` in your
+existing repo (Add file → Upload files, drag these in, commit). GitHub Pages
+redeploys automatically — no need to touch the Pages settings again.
 
-## How to play with up to 8 people
+## How to play with up to 4 people
 
-1. Everyone enters a callsign (optional — defaults to "Player").
-2. One person clicks **Host Game** and shares the code shown.
-3. Up to seven friends each click **Join Game** and paste in that code.
-4. The host sees a lobby list of who's connected and clicks **Start Game**
-   whenever ready (doesn't need all 8).
-5. Everyone spawns into the same open sky arena. Coins are worth 10 points;
-   shooting someone down is worth 50 and adds to your kill count.
-6. Get shot to 0 HP and you respawn after ~2 seconds with brief
-   invulnerability (your plane flickers). There's no match end — it's an
-   open-ended arena, so play as long as you like.
+1. One person clicks **Host Game** and shares the code shown.
+2. Up to three friends each click **Join Game** and paste in that code.
+3. The host sees a lobby list of who's connected and can click
+   **Start Game** any time there are at least 2 players total (you don't
+   need all 4 to start).
+4. Everyone plays their own board. Opponent boards appear as small previews
+   on the side; a greyed-out preview means that player has been eliminated.
+5. Clear 2+ lines at once to send garbage to a random still-alive opponent.
+6. Last person standing wins — everyone sees the result.
 
 ## Controls
 
-- **Mouse movement** — steer. The plane always flies forward and turns to
-  face wherever your cursor is (the camera keeps you centered on screen, so
-  the turn is computed straight from screen-center → cursor). Turning is
-  deliberately sluggish — it's a jet, not a go-kart — and gets noticeably
-  harder while boosting, trading agility for speed.
-- **↑** or **W** — boost (limited meter, recharges when not in use)
-- **Left click** or **Space** — fire the gun, at a very high rate of fire
-- **Right-click** or **Q** — fire a homing missile (limited ammo)
-- **F** — pop a flare to break an incoming missile's lock
-
-### Gun heat
-
-The gun fires fast (about 90ms between shots), but holding it down builds
-heat. Max out the heat bar and the gun locks up until it cools back down —
-so short controlled bursts beat holding the trigger. Heat drains on its own
-whenever you let off fire, and drains faster once you've overheated.
-
-### Missiles & flares
-
-Missiles lock onto the nearest enemy plane roughly in front of you (within
-range and a forward cone) the moment you fire, then home in on that target
-for the rest of their flight — they out-turn a plane on its own, so outrunning
-one by boosting in a straight line or juking alone is hard. You carry 4, and
-they regenerate slowly over time.
-
-A flare is the reliable counter: pop one (you carry 3, also slow-regenerating)
-and any missile currently locked onto you within range detonates on the flare
-right there — a real explosion, gone instantly — instead of hitting you. A
-locked missile shows a flashing on-screen warning so you know to react. If a
-missile's target dies or disconnects mid-flight, it goes ballistic (keeps
-flying straight, no more homing) instead of exploding, since there's nothing
-left to decoy it away from.
-
-### Effects
-
-Muzzle flashes on the gun, a smoke puff on missile launch, sparks on bullet
-hits, a proper blast on missile hits and flare intercepts, a bigger explosion
-when a plane goes down, and a sparkle when you grab a coin. Hit/kill effects
-are synced over the network (a small `impact`/`killed` message tells every
-other client to remove that projectile and play the explosion at the same
-spot and moment), so everyone sees the same thing at roughly the same time,
-not just whoever got hit.
-
-Heat and missile/flare ammo, like hit detection below, are tracked and
-self-reported client-side, so it's fine for casual play but not hardened
-against a modified client.
+- **← / →** — move left/right
+- **↑** — rotate
+- **↓** — soft drop (hold for faster descent)
+- **Space** — hard drop
 
 ## Known limitations
-- If the host disconnects, the match ends for everyone (the host is the
-  relay hub and the coin/score authority). Joiners disconnecting doesn't
-  affect anyone else.
-- Hit detection trusts the player being shot at to self-report the hit
-  (the same trust model the Tetris version used for eliminations). Fine for
-  a casual game with friends; not hardened against a modified client.
-- Same WebRTC caveat as always: same-network setups connect reliably;
-  separate networks with strict firewalls occasionally need a TURN relay,
-  which isn't included here.
-- No sound effects or mobile touch controls yet — keyboard/mouse only.
 
-## Recent fixes
-- The plane silhouette was badly out of proportion (paper-thin fuselage, an
-  oversized wing, a canopy that read as a giant eye) and looked broken at
-  most angles. Rebuilt with a properly proportioned fuselage and
-  correctly sized/outlined wing, tail and fin.
-- Missiles that never caught their target used to just vanish with zero
-  warning when their fuel ran out, which looked like a hit had failed to
-  register even when the missile had clearly gotten close. They now
-  detonate in place on expiry, the proximity fuse is more forgiving, and
-  they turn faster, so a near-miss reads as a miss instead of a silent
-  bug. The arena was also sized back down so missiles have a realistic
-  chance to close the distance before running out of fuel.
-- The ground is now open water (with a wave-line surface) instead of
-  grass hills.
-- Shots fired by anyone other than the host used to be invisible to the host
-  and couldn't damage it — the host relayed those shots to other clients but
-  never added them to its own local bullet list. It now does (and the same
-  fix applies to missiles).
-- Respawning never actually happened — the update function returned before
-  the code that checks the respawn timer, so that check never ran.
+- No restart button — refresh the page for a rematch.
+- If the host disconnects, the match ends for everyone (the host is the
+  relay hub). Joiners disconnecting doesn't affect anyone else.
+- Same WebRTC caveat as always: a same-network/wired setup (like a school
+  LAN) tends to connect reliably; separate networks with strict firewalls
+  occasionally need a TURN relay, which isn't included here.
