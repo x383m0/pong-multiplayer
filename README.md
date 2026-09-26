@@ -102,11 +102,22 @@ one by boosting in a straight line or juking alone is hard. You carry 4, and
 they regenerate slowly over time.
 
 A flare is the reliable counter: pop one (you carry 3, also slow-regenerating)
-and any missile currently locked onto you within range instantly loses its
-lock and goes ballistic — it keeps flying straight but can no longer correct,
-so a well-timed flare plus a turn is how you dodge. A locked missile shows a
-flashing on-screen warning so you know to react. If a missile's target dies
-or disconnects mid-flight, it also goes ballistic the same way.
+and any missile currently locked onto you within range detonates on the flare
+right there — a real explosion, gone instantly — instead of hitting you. A
+locked missile shows a flashing on-screen warning so you know to react. If a
+missile's target dies or disconnects mid-flight, it goes ballistic (keeps
+flying straight, no more homing) instead of exploding, since there's nothing
+left to decoy it away from.
+
+### Effects
+
+Muzzle flashes on the gun, a smoke puff on missile launch, sparks on bullet
+hits, a proper blast on missile hits and flare intercepts, a bigger explosion
+when a plane goes down, and a sparkle when you grab a coin. Hit/kill effects
+are synced over the network (a small `impact`/`killed` message tells every
+other client to remove that projectile and play the explosion at the same
+spot and moment), so everyone sees the same thing at roughly the same time,
+not just whoever got hit.
 
 Heat and missile/flare ammo, like hit detection below, are tracked and
 self-reported client-side, so it's fine for casual play but not hardened
